@@ -1,0 +1,899 @@
+VERTEX RAG HELPER DOCS:
+
+Moving from the "out-of-the-box" search experience to Vertex AI RAG Engine is a shift from a turnkey application to a customizable framework. Since you already know your way around IAM, GCS, and Service Accounts, you're ready for the extra control it gives you. 
+Medium
+Medium
+ +1
+RAG Comparison: Vertex AI Search vs. RAG Engine
+Feature 	Vertex AI Search (Search API)	Vertex AI RAG Engine
+Core Concept	The "Assembled Car": A fully managed search-as-a-service for instant grounding.	The "Chassis": An orchestration framework for building bespoke RAG pipelines.
+Abstraction	High. Handles ETL, OCR, chunking, and indexing automatically.	Medium. You control the Agent Development Kit (ADK) and pipeline steps.
+Data Backend	Uses "Data Stores" (pre-built managed indices).	Offers RagManagedDb (Spanner-based) or Vertex AI Vector Search.
+Retrieval Options	Google-quality hybrid search (vector + keyword).	Flexible. Can use Vertex AI Search as a backend or direct vector search.
+Re-ranking	Built-in, automated ranking based on Google Search tech.	Customizable. Supports Ranking API or custom LLM-based re-rankers.
+Pricing Model	Primarily pay-per-query + storage.	Resource-based (e.g., Spanner nodes for the managed DB).
+Key Reasons to Move to Vertex RAG Engine
+Granular Logic: If you need specific chunking strategies or want to use the Document AI Layout Parser before indexing.
+Component Swapping: You can use your own vector database (like Vertex AI Vector Search) while still having Google manage the orchestration.
+Custom Embedding Models: Search API limits you to certain defaults; RAG Engine lets you specify the embedding model of your choice during ingestion.
+Production Guardrails: Better integration with VPC Service Controls (VPC-SC) and Customer-Managed Encryption Keys (CMEK) for enterprise isolation. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +5
+Would you like a sample Python snippet using the Vertex AI SDK to initialize a RagCorpus and import files from your GCS buckets?
+
+
+
+
+
+undefined
+undefined
+undefined
+14 sites
+The GCP RAG Spectrum: Vertex AI Search, RAG Engine, and ...
+Aug 8, 2025 — By understanding Vertex AI Vector Search, RAG Engine, and Vertex AI Search as points on a spectrum of abstraction, the path forwar...
+
+Medium
+
+Vertex AI RAG Engine billing - Google Cloud Documentation
+Mar 3, 2026 — If any RAG corpus in your project chooses to use a RAG-managed database for the vector search, you will be charged for the RAG-man...
+
+Google Cloud Documentation
+Agent Development Kit (ADK) + Vertex AI RAG Engine - GitHub
+A production-ready Retrieval-Augmented Generation (RAG) engine built with Google's Agent Development Kit (ADK) and Vertex AI RAG E...
+
+GitHub
+
+Show all
+bro last time you gave me better one with the doc limits like search api 3000 files per prompts vs Vertex rag 10 million docs per project etc ... like that  ... can give me something like that
+Since you're already familiar with IAM, GCS, and Service Accounts, you’ll appreciate the massive difference in scale when moving to the Vertex AI RAG Engine.
+The "Search API" (specifically grounding with Vertex AI Search) is great for smaller, curated datasets, but the RAG Engine is built for enterprise-level document management.
+Document Limits Comparison 
+Limit 	Vertex AI Search (Search API)	Vertex AI RAG Engine
+Max Files per Prompt	3,000 files	No hard per-prompt file limit; restricted only by context window.
+Max Corpus Size	Typically optimized for up to 100k - 1M docs per data store.	10M+ documents (Scale depends on Vector Search or Spanner backend).
+Max Page Count	3,000 pages per file.	Limited by Spanner storage tiers (up to 10 nodes in Scaled tier).
+Max File Size	50 MB per file.	No specific API limit; limited by GCS upload/processing capacity.
+Supported File Types	PDF, HTML, TXT.	PDF, HTML, TXT, DOCX, PPTX (via LLM Parser).
+Why This Matters for Your GCP Setup
+Physical Isolation: Unlike the Search API, Vertex AI RAG Engine provisions a customer-specific project for resources, ensuring your data is physically isolated at the storage layer.
+Infrastructure Control: You can choose between the Basic tier (100 processing units) or the Scaled tier (starting at 1 node/1,000 units and autoscaling to 10) for your underlying Spanner instance.
+Integration with GCS: Since you use GCS buckets, the RAG Engine allows you to import entire folders directly into a RagCorpus using its managed ingestion pipeline. 
+Google Cloud
+Google Cloud
+ +2
+Would you like the IAM role list required for your Service Account to manage these larger RagCorpora and RagFiles?
+
+
+
+
+
+undefined
+undefined
+8 sites
+Vertex AI RAG Engine billing - Google Cloud Documentation
+Mar 3, 2026 — A RAG-managed database uses a Spanner instance as the backend. For each of your projects, Vertex AI RAG Engine provisions a custom...
+
+Google Cloud Documentation
+Document types for Vertex AI RAG Engine | Generative AI on ...
+Jan 9, 2026 — Stay organized with collections Save and categorize content based on your preferences. Dismiss Got it. ... The VPC-SC security con...
+
+Google Cloud Documentation
+Gemini 3.1 Pro | Generative AI on Vertex AI
+Mar 5, 2026 — Documents description * Maximum number of files per prompt: 3000. * Maximum number of pages per file: 3000. * Maximum file size pe...
+
+Google Cloud Documentation
+Show all
+yes
+To manage Vertex AI RAG Engine effectively, your custom Service Account needs a specific set of roles that cover the Vertex AI platform, data ingestion from GCS, and the underlying managed storage. 
+Required IAM Roles for Service Accounts
+Role Name 	IAM String	Why you need it
+Vertex AI User	roles/aiplatform.user	Grants permission to create and manage RagCorpora and RagFiles, and run retrieval queries.
+Storage Object Viewer	roles/storage.objectViewer	Allows the RAG Engine to read files from your GCS buckets during the ingestion process.
+Discovery Engine Editor	roles/discoveryengine.editor	(Optional) Required if you use Vertex AI Search as the retrieval backend for your RAG Engine.
+Document AI API User	roles/documentai.viewer	(Optional) Needed if you use the LLM/Layout Parser for advanced document chunking.
+Pro-Tip: The "Service Agent" Role 
+When you create a RagCorpus, Google uses a Google-managed Service Agent to handle the heavy lifting behind the scenes. If you use Customer-Managed Encryption Keys (CMEK), you must grant this specific agent the Cloud KMS CryptoKey Encrypter/Decrypter role:
+Agent Identity: service-[PROJECT_NUMBER]@gcp-sa-vertex-rag.iam.gserviceaccount.com
+Permissions: roles/cloudkms.cryptoKeyEncrypterDecrypter 
+Google Cloud Documentation
+Google Cloud Documentation
+ +1
+Important Permission for GCS Imports
+If your Service Account is managing the import via the Python SDK, ensure it has storage.objects.get and storage.objects.list permissions on the specific bucket where your documents live. 
+Google Cloud Documentation
+Google Cloud Documentation
+Do you want to see the Python initialization code to link your Service Account with a new RagCorpus?
+
+
+
+
+
+undefined
+8 sites
+RAG quickstart | Generative AI on Vertex AI
+Mar 5, 2026 — Required roles. Grant roles to your user account. Run the following command once for each of the following IAM roles: roles/aiplat...
+
+Google Cloud Documentation
+Use RagManagedDb with Vertex AI RAG Engine
+Mar 3, 2026 — Grant Permissions to the Vertex AI RAG Engine service agent. For the Vertex AI RAG Engine to encrypt and decrypt data using your K...
+
+Google Cloud Documentation
+Use data ingestion with Vertex AI RAG Engine
+Mar 3, 2026 — Data sources supported for RAG. The following data sources are supported: * Upload a local file: A single-file upload using upload...
+
+Google Cloud Documentation
+Show all
+yes
+To initialize a RagCorpus and import files using your Service Account, you'll use the Vertex AI SDK for Python. Since you're already familiar with GCS buckets and IAM, the transition to managing a corpus programmatically is straightforward. 
+Python Initialization for Vertex RAG Engine 
+This snippet demonstrates how to initialize Vertex AI with your service account credentials, create a new RagCorpus, and import documents directly from a GCS bucket.
+python
+import vertexai
+from vertexai import rag
+from vertexai.generative_models import GenerativeModel, Tool
+
+# 1. Initialize Vertex AI with your Service Account
+# Ensure your environment variable GOOGLE_APPLICATION_CREDENTIALS points to your JSON key file
+PROJECT_ID = "your-project-id"
+LOCATION = "us-central1" # or your preferred region
+
+vertexai.init(project=PROJECT_ID, location=LOCATION)
+
+# 2. Configure the Embedding Model
+# text-embedding-004 is recommended for high-performance RAG
+embedding_model_config = rag.EmbeddingModelConfig(
+    publisher_model="publishers/google/models/text-embedding-004"
+)
+
+# 3. Create the RagCorpus
+# This resource acts as the container for your indexed documents
+corpus = rag.create_corpus(
+    display_name="my_enterprise_rag_corpus",
+    embedding_model_config=embedding_model_config
+)
+
+print(f"Created RagCorpus: {corpus.name}")
+
+# 4. Import Documents from GCS
+# You can import a single file or an entire directory (gs://bucket/folder/)
+gcs_source = "gs://your-bucket-name/documents-to-index/"
+
+import_job = rag.import_files(
+    corpus_name=corpus.name,
+    paths=[gcs_source],
+    chunk_size=1024,   # Optional: adjust based on your doc structure
+    chunk_overlap=256  # Optional: typical starting overlap
+)
+
+print(f"Import job started for {gcs_source}")
+Use code with caution.
+
+Key Management Details
+Permissions: Ensure your Service Account has the roles/aiplatform.user and roles/storage.objectViewer roles as discussed previously.
+Backend Scaling: By default, this uses the Basic tier. For your "10 million docs" scale, you will eventually want to configure a RagVectorDbConfig with Vertex AI Vector Search or a Pinecone backend. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +2
+Would you like to see how to add the Document AI Layout Parser to this code to handle complex PDF tables during ingestion?
+
+
+
+
+
+undefined
+5 sites
+RAG quickstart | Generative AI on Vertex AI
+Mar 5, 2026 — from vertexai import rag from vertexai. generative_models import GenerativeModel, Tool import vertexai # Create a RAG Corpus, Impo...
+
+Google Cloud Documentation
+Use Pinecone with Vertex AI RAG Engine
+Mar 3, 2026 — from vertexai import rag import vertexai # TODO(developer): Update and un-comment below lines # PROJECT_ID = "your-project-id" # p...
+
+Google Cloud Documentation
+Use Vertex AI Feature Store in Vertex AI RAG Engine
+Mar 3, 2026 — The following sections show you how to set up a Vertex AI Feature Store instance for your RAG application. * Create a BigQuery tab...
+
+Google Cloud Documentation
+Show all
+yes
+To handle complex PDF tables during ingestion, you must integrate the Document AI Layout Parser into your Vertex AI RAG Engine workflow. This involves creating a specific processor in Document AI and then referencing it in your Python ingestion code. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +3
+1. Create the Layout Parser Processor 
+Before updating your code, you must create a processor in the Google Cloud Console: 
+Go to the Document AI Processor Gallery.
+Search for and select Layout Parser.
+Name it (e.g., my-layout-parser) and note the Processor ID and Location. 
+Google Cloud Documentation
+Google Cloud Documentation
+2. Python Code with Layout Parser
+Use the parsing_config parameter within rag.import_files to direct the RAG Engine to use your new processor. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +2
+python
+from vertexai import rag
+
+# Your existing setup
+PROJECT_ID = "your-project-id"
+LOCATION = "us-central1"
+CORPUS_NAME = "projects/.../ragCorpora/..." # From your corpus creation
+PROCESSOR_ID = "your-processor-id" # From Document AI Console
+
+# Define the Layout Parser configuration
+# Note: Use the full resource path for the processor
+layout_parser_config = rag.LayoutParserConfig(
+    processor_name=f"projects/{PROJECT_ID}/locations/us/processors/{PROCESSOR_ID}",
+    max_parsing_requests_per_min=120  # Adjust based on your Doc AI quota
+)
+
+# Import files using the Layout Parser for better table extraction
+import_job = rag.import_files(
+    corpus_name=CORPUS_NAME,
+    paths=["gs://your-bucket-name/complex-pdfs/"],
+    transformation_config=rag.TransformationConfig(
+        parsing_config=rag.ParsingConfig(
+            layout_parser_config=layout_parser_config
+        ),
+        chunking_config=rag.ChunkingConfig(
+            chunk_size=1024,
+            chunk_overlap=256
+        )
+    )
+)
+
+print(f"Import job with Layout Parser started: {import_job}")
+Use code with caution.
+
+Why this is better for tables:
+Semantic Coherence: The Layout Parser understands document hierarchy (headings, lists, tables) and ensures that all text in a chunk comes from the same logical element.
+Reduced Hallucinations: By preserving the visual relationship of data in a table, the LLM is less likely to misinterpret row/column values.
+Contextual Awareness: It identifies tables and charts specifically, providing structured representations that are easier for the text-embedding-004 model to vectorize accurately. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +3
+Do you need help setting up the vector retrieval part next to test how well the tables are being queried?
+
+
+
+
+
+undefined
+6 sites
+Use Document AI layout parser with Vertex AI RAG Engine
+Mar 5, 2026 — * Document AI. * Document AI layout parser. * Use the layout parser in Vertex AI RAG Engine. Limitations. Enable the Document AI A...
+
+Google Cloud Documentation
+Process documents with Gemini layout parser | Document AI
+Feb 10, 2026 — Reduced hallucinations Unlike pure LLM-based parsers that try to read text that isn't there, Gemini layout parser's foundation in ...
+
+Google Cloud Documentation
+
+Layout parser Quickstart | Document AI
+Mar 3, 2026 — Create a processor * In the Google Cloud console, in the Document AI section, and select Processor Gallery. Processor Gallery. * I...
+
+Google Cloud Documentation
+
+Show all
+yes
+To test how well your tables were ingested, you can perform a Vector Retrieval to see the raw chunks or use the Generative Model to get a natural language answer grounded in those chunks. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +1
+1. Simple Vector Retrieval (Testing Table Chunks)
+Use rag.retrieval_query to see exactly which chunks the engine finds. This is the best way to verify if the Layout Parser actually kept your table rows and columns together. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +1
+python
+from vertexai import rag
+
+# Query specifically for data you know is in a table
+QUERY_TEXT = "What was the Q3 revenue for the North American division?"
+
+response = rag.retrieval_query(
+    rag_resources=[
+        rag.RagResource(
+            rag_corpus="projects/your-project/locations/us-central1/ragCorpora/your-corpus-id",
+        )
+    ],
+    text=QUERY_TEXT,
+    rag_retrieval_config=rag.RagRetrievalConfig(
+        top_k=5,  # Retrieve the top 5 most relevant chunks
+        filter=rag.Filter(vector_distance_threshold=0.5), # Adjust for sensitivity
+    ),
+)
+
+# Inspect the returned chunks
+for context in response.contexts:
+    print(f"Source: {context.source_uri}")
+    print(f"Snippet: {context.text[:500]}...") # Verify table structure here
+    print("-" * 30)
+Use code with caution.
+
+2. End-to-End Grounded Generation
+To see how the model interprets those table chunks, use the Tool.from_retrieval method. This allows the model to act as a reasoning engine over the retrieved data. 
+Medium
+Medium
+ +1
+python
+from vertexai.generative_models import GenerativeModel, Tool
+
+# 1. Define the RAG Tool linked to your Corpus
+rag_retrieval_tool = Tool.from_retrieval(
+    retrieval=rag.Retrieval(
+        source=rag.VertexRagStore(
+            rag_resources=[
+                rag.RagResource(
+                    rag_corpus="projects/your-project/locations/us-central1/ragCorpora/your-corpus-id",
+                )
+            ],
+            similarity_top_k=3,
+        ),
+    )
+)
+
+# 2. Initialize the model with the RAG Tool
+rag_model = GenerativeModel(
+    model_name="gemini-1.5-flash-001", # or gemini-2.0-flash
+    tools=[rag_retrieval_tool]
+)
+
+# 3. Generate content
+# The model will automatically query the RAG Engine before answering
+response = rag_model.generate_content("Summarize the financial table found in the document.")
+
+print(response.text)
+Use code with caution.
+
+Pro-Tip for Table Testing
+If tables are complex, compare the context.text results from a corpus ingested with the Layout Parser versus one without it. The Layout Parser usually preserves the "key: value" relationship of table cells much more cleanly than standard text chunking. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +1
+Would you like to know how to set up metadata filtering so tables from a specific department or date range can be queried?
+
+
+
+
+
+undefined
+undefined
+4 sites
+Use Vertex AI Search as a retrieval backend using Vertex AI ...
+Mar 3, 2026 — * Vertex AI Search. Configure Vertex AI Search. * Use the Vertex AI Search as a retrieval backend for Vertex AI RAG Engine. Set th...
+
+Google Cloud Documentation
+Vertex AI RAG Engine overview - Google Cloud Documentation
+Mar 3, 2026 — Data ingestion: Intake data from different data sources. For example, local files, Cloud Storage, and Google Drive. Data transform...
+
+Google Cloud Documentation
+Use Vertex AI Vector Search with Vertex AI RAG Engine
+Mar 3, 2026 — * Vertex AI Vector Search setup. Set up Vertex AI SDK. Create Vector Search index. Create Vector Search index endpoint. Deploy an ...
+
+Google Cloud Documentation
+
+Show all
+yes
+To use metadata filtering, you need to provide the metadata at the time of ingestion and then apply a Filter during retrieval.
+Since you are well-versed in GCS, the most efficient way to do this at scale is by using a Sidecar JSON metadata file.
+1. The Ingestion Setup
+For every document (e.g., report.pdf), you can have a matching JSON file (e.g., report.pdf.metadata.json) in the same GCS bucket.
+Structure of report.pdf.metadata.json:
+json
+{
+  "struct_value": {
+    "department": "finance",
+    "year": 2024,
+    "doc_type": "quarterly_report"
+  }
+}
+Use code with caution.
+
+When you run rag.import_files, the RAG Engine automatically picks up these attributes and attaches them to the chunks.
+2. Retrieval with Metadata Filters
+Once ingested, you can narrow down your search using a metadata filter. This is crucial when you have millions of docs and only want the model to "see" a specific subset.
+python
+from vertexai import rag
+
+# Querying only the Finance department's tables from 2024
+QUERY_TEXT = "What was the EBITDA in the Q3 table?"
+
+# Define the filter string (uses a SQL-like syntax)
+metadata_filter = "department = \"finance\" AND year = 2024"
+
+response = rag.retrieval_query(
+    rag_resources=[
+        rag.RagResource(
+            rag_corpus="projects/your-project/locations/us-central1/ragCorpora/your-corpus-id",
+        )
+    ],
+    text=QUERY_TEXT,
+    rag_retrieval_config=rag.RagRetrievalConfig(
+        top_k=5,
+        filter=rag.Filter(
+            metadata_filter=metadata_filter # The engine only searches matching docs
+        ),
+    ),
+)
+
+for context in response.contexts:
+    print(f"Retrieved from: {context.source_uri}")
+    print(f"Content: {context.text}")
+Use code with caution.
+
+Why this is a game-changer for your 10M doc scale:
+Precision: It prevents the model from getting "distracted" by similar tables from the wrong year or department.
+Efficiency: Filtering happens at the database layer (Spanner/Vector Search), making retrieval faster and cheaper for massive corpora.
+Access Control: You can use metadata to mimic organizational permissions (e.g., clearance_level >= 3).
+Important Note on Types
+The RAG Engine supports String, Integer, Double, and Boolean types for filtering. Ensure your JSON metadata values match these types.
+Do you want to see how to automate the generation of these JSON metadata files using a Python script for your existing GCS files?
+
+
+
+
+yes
+To automate the generation of sidecar JSON metadata files for your GCS buckets, you can use the google-cloud-storage library. This script iterates through your existing files and uploads a corresponding .metadata.json for each one, allowing Vertex AI RAG Engine to filter them during retrieval.
+Python Script: Automate Metadata Generation 
+This script assumes your files follow a naming convention (like department_year_filename.pdf) or that you want to apply bulk metadata based on their folder path.
+python
+import json
+from google.cloud import storage
+
+def generate_gcs_metadata(bucket_name, folder_prefix, department, year):
+    """Generates sidecar JSON metadata for all files in a GCS folder."""
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    
+    # 1. List all blobs in the target folder
+    blobs = bucket.list_blobs(prefix=folder_prefix)
+    
+    for blob in blobs:
+        # Skip existing metadata files to avoid recursion
+        if blob.name.endswith(".metadata.json"):
+            continue
+            
+        # 2. Define the RAG metadata structure
+        # Vertex RAG Engine expects the "struct_value" key
+        metadata_content = {
+            "struct_value": {
+                "department": department,
+                "year": int(year),
+                "source": "automated_batch"
+            }
+        }
+        
+        # 3. Create the sidecar filename (e.g., report.pdf -> report.pdf.metadata.json)
+        metadata_blob_name = f"{blob.name}.metadata.json"
+        metadata_blob = bucket.blob(metadata_blob_name)
+        
+        # 4. Upload directly to GCS as a JSON string
+        metadata_blob.upload_from_string(
+            data=json.dumps(metadata_content),
+            content_type='application/json'
+        )
+        print(f"Uploaded metadata for: {blob.name}")
+
+# Usage:
+# generate_gcs_metadata("your-bucket-name", "finance/2024/", "finance", 2024)
+Use code with caution.
+
+Why this works for RAG Engine
+Automatic Linking: When you call rag.import_files on a folder GCS path, the engine automatically looks for any file ending in .metadata.json that matches a source file's name.
+Scalability: Since this script runs on your Service Account, you can process millions of files in a single batch job or a Cloud Function triggered by new uploads.
+Search Optimization: By adding these fields, your metadata_filter (e.g., department = "finance") will instantly narrow the search space, which is critical for staying within latency limits at the 10 million document scale. 
+Do you want to see how to verify the status of your ingestion jobs once these files are uploaded to ensure all 10M docs were indexed correctly?
+
+
+
+
+
+
+
+2 sites
+Python Automation Tutorial | How to Extract File Metadata with ...
+Jun 2, 2023 — welcome to this Python automation tutorial today we'll be looking at grabbing metadata that is the attributed. data associated wit...
+
+
+YouTube
+·
+Matador Software
+
+4:47
+Python modifies the metadata of GCP storage - Stack Overflow
+Aug 5, 2021 — * 2 Answers. Sorted by: If I understand it correctly, every time the function is called you iterate over all existing blobs in the...
+
+Stack Overflow
+yes
+To verify that your 10 million documents have been indexed correctly in Vertex AI RAG Engine, you can use the Python SDK to check the status of specific import jobs and the overall file count in your corpus. 
+1. Monitor a Specific Ingestion Job
+When you call rag.import_files, it returns an Import Job object. You can poll this job to see if it is SUCCEEDED, FAILED, or PARTIAL_SUCCESS. 
+python
+from vertexai import rag
+
+# Capture the job from your previous import call
+# import_job = rag.import_files(...)
+
+# Get the latest status of that specific job
+job_status = rag.get_import_files_job(name=import_job.name)
+
+print(f"Job Status: {job_status.state}")
+print(f"Files Processed: {job_status.imported_rag_files_count}")
+print(f"Files Failed: {job_status.failed_rag_files_count}")
+print(f"Files Skipped: {job_status.skipped_rag_files_count}") # Due to deduplication
+Use code with caution.
+
+2. Verify Total Corpus File Count
+For a massive 10M document scale, you’ll want to perform a "sanity check" by listing the files actually present in the RagCorpus to ensure the final count matches your GCS source.
+python
+# List all files in the corpus (supports pagination for large datasets)
+rag_files = rag.list_rag_files(corpus_name=corpus.name)
+
+# For 10M docs, use the pager to iterate or check total count if supported by your SDK version
+file_count = 0
+for file in rag_files:
+    file_count += 1
+    # Example: Check status of an individual file
+    # print(f"File: {file.display_name}, State: {file.state}")
+
+print(f"Total documents indexed in corpus: {file_count}")
+Use code with caution.
+
+3. Debugging Failures with "Import Result Sink" 
+If you see a high failed_rag_files_count, you can configure an Import Result Sink during ingestion. This writes detailed error logs (like "File too large" or "Unsupported format") directly back to a GCS bucket so you can audit specific failures.
+python
+import_job = rag.import_files(
+    corpus_name=corpus.name,
+    paths=["gs://your-bucket/docs/"],
+    import_result_sink=rag.ImportResultSink(
+        gcs_output_directory="gs://your-bucket/error-logs/"
+    )
+)
+Use code with caution.
+
+Why this is critical for 10M docs:
+Deduplication: Vertex AI RAG Engine skips files that haven't changed since the last import. Checking skipped_rag_files_count prevents you from thinking an import failed when it actually just realized it was already done.
+State Tracking: Individual files can have states like ACTIVE or ERROR. Monitoring these ensures your Vector Search index is only querying healthy data.
+Would you like to see how to delete or update specific document chunks if you realize some of your metadata was wrong?
+
+
+
+
+
+
+
+2 sites
+Vertex AI RAG loading document titles but not contents from ...
+Aug 16, 2025 — check_all_corpuses_health(PROJECT_ID, LOCATION) James1 August 19, 2025, 4:50pm 2. This has been fixed using the python SDK and/or ...
+
+Google Developer forums
+Use data ingestion with Vertex AI RAG Engine
+Mar 3, 2026 — Use data ingestion with Vertex AI RAG Engine Stay organized with collections Save and categorize content based on your preferences...
+
+Google Cloud Documentation
+yes
+In Vertex AI RAG Engine, document management is immutable at the file level. This means if you realize your metadata or chunking is wrong, you cannot "patch" an existing file; you must delete the file and re-import it with the corrected settings. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +1
+1. Deleting a Specific File
+To delete a file, you need its full resource name. You can find this by listing the files in your corpus. 
+Google
+Google
+ +1
+python
+from vertexai import rag
+
+# Identify the file you want to remove
+# Format: projects/{project}/locations/{location}/ragCorpora/{corpus_id}/ragFiles/{file_id}
+FILE_NAME = "projects/your-project/locations/us-central1/ragCorpora/123/ragFiles/456"
+
+# Remove it from the index
+rag.delete_file(name=FILE_NAME)
+print(f"Deleted file {FILE_NAME}")
+Use code with caution.
+
+2. Updating Metadata (Delete + Re-import)
+Since you are using GCS sidecar JSON files, the "update" workflow looks like this:
+Update the JSON: Modify the .metadata.json file in your GCS bucket with the correct values.
+Delete from RAG: Use rag.delete_file() to remove the current version from your RagCorpus.
+Re-import: Call rag.import_files() on that specific path again. The engine will ingest the document with the new metadata. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +2
+3. Bulk Update/Cleanup (Large Scale)
+For your 10M document scale, if you need to fix metadata for thousands of files, follow this programmatic pattern:
+python
+# 1. List all files and find ones with the 'wrong' metadata
+rag_files = rag.list_rag_files(corpus_name=CORPUS_NAME)
+
+for file in rag_files:
+    # Example logic: if the file name contains a specific department you want to fix
+    if "wrong_dept" in file.display_name:
+        rag.delete_file(name=file.name)
+        print(f"Queued {file.display_name} for deletion.")
+
+# 2. Re-trigger the import job for the corrected GCS folder
+# The engine will ignore existing ACTIVE files and only re-import what's missing (the deleted ones)
+rag.import_files(
+    corpus_name=CORPUS_NAME,
+    paths=["gs://your-bucket/corrected-folder/"]
+)
+Use code with caution.
+
+Important Guardrails
+Deduplication: When re-importing, the RAG Engine uses data deduplication based on file content. If you only changed the metadata but not the PDF content, you must delete the old RagFile first, or the engine might skip the "new" import thinking it’s a duplicate.
+Latency: Deletions from the Vector Search index are usually near real-time, but for massive batches, wait a few minutes before re-importing to ensure the index has cleared the old vectors. 
+Google Cloud Documentation
+Google Cloud Documentation
+Would you like to see how to query your corpus using these new metadata filters to ensure the "fix" worked?
+
+
+
+
+
+undefined
+undefined
+3 sites
+Manage your RAG knowledge base (corpus)
+Mar 5, 2026 — Table_title: Corpus management Table_content: header: | Operation | Description | Parameters | Examples | row: | Operation: Create...
+
+Google Cloud Documentation
+Delete a RAG file from an index | Generative AI on Vertex AI
+from vertexai import rag import vertexai # TODO(developer): Update and un-comment below lines # PROJECT_ID = "your-project-id" # f...
+
+Google
+How to Build a RAG Agent with Google ADK & Vertex AI
+Nov 25, 2025 — 1. Keep Your Knowledge Base Fresh * Automatically update your RAG corpus with the latest product information, pricing data, compet...
+
+Bright Data
+
+yes and also how to see the doc list per store ... are they called stores? like we do in the search api?
+In the Vertex AI RAG Engine, the primary container for your data is called a Corpus (not a "Data Store" as in the Search API/Agent Builder). 
+Google Cloud Documentation
+Google Cloud Documentation
+ +1
+While the Search API uses "Data Stores" as a managed search abstraction, the RAG Engine uses RagCorpus to store indexed documents, manage embeddings, and handle retrieval. 
+Bright Data
+Bright Data
+1. Listing Documents per Corpus ("Store")
+To see the list of files within a specific corpus, you use the rag.list_files method. This is the direct equivalent of browsing a data store's document list. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +1
+python
+from vertexai import rag
+
+# Replace with your actual corpus resource name
+CORPUS_NAME = "projects/your-project/locations/us-central1/ragCorpora/your-corpus-id"
+
+# List all files in the corpus
+files = rag.list_files(corpus_name=CORPUS_NAME)
+
+for file in files:
+    print(f"File Display Name: {file.display_name}")
+    print(f"File Resource Name: {file.name}") # Use this for deletions/updates
+    print(f"Upload Time: {file.create_time}")
+    print("-" * 20)
+Use code with caution.
+
+2. Querying with Metadata Filters
+To verify that your metadata fixes worked (e.g., the department is now correctly set to "finance"), you apply a metadata_filter during the retrieval process. 
+Google Cloud Documentation
+Google Cloud Documentation
+python
+# Define your filter using SQL-like syntax
+# This ensures only documents with 'finance' and year 2024 are searched
+metadata_filter = "department = \"finance\" AND year = 2024"
+
+response = rag.retrieval_query(
+    rag_resources=[
+        rag.RagResource(
+            rag_corpus=CORPUS_NAME,
+        )
+    ],
+    text="Summarize the revenue tables",
+    rag_retrieval_config=rag.RagRetrievalConfig(
+        top_k=5,
+        filter=rag.Filter(
+            metadata_filter=metadata_filter
+        ),
+    ),
+)
+
+# If this returns results, your metadata is correctly indexed!
+for context in response.contexts:
+    print(f"Verified Source: {context.source_uri}")
+Use code with caution.
+
+Summary of Terminology Differences
+Feature 	Vertex AI Search (Search API)	Vertex AI RAG Engine
+Container Name	Data Store	RagCorpus
+Object Name	Document	RagFile
+Indexing Job	Ingestion Task	Import Job
+Filtering	Filter Expressions	Metadata Filtering
+Would you like to see how to link multiple Corpora into a single query to search across different departments at once?
+Next Steps: You might want to explore Vector Search integration for even larger datasets or learn how to evaluate the retrieval quality of your RAG pipeline.
+
+
+
+
+
+undefined
+undefined
+undefined
+9 sites
+Vertex AI RAG Engine overview - Google Cloud Documentation
+Mar 3, 2026 — Data indexing: Vertex AI RAG Engine creates an index called a corpus. The index structures the knowledge base so it's optimized fo...
+
+Google Cloud Documentation
+Use Vertex AI Feature Store in Vertex AI RAG Engine
+Mar 3, 2026 — Generate content using Vertex AI Gemini API ... For more information, see the Python API reference documentation. from vertexai im...
+
+Google Cloud Documentation
+How to Build a RAG Agent with Google ADK & Vertex AI
+Nov 25, 2025 — The initialization establishes connections to both the GenAI client for agent operations and Vertex AI for RAG capabilities. It va...
+
+Bright Data
+
+Show all
+yes ... also, just an FYI, when i was creating my store and uploading docs, i was also including a summary layer per docs thus having 2 docs per upload which improved the search result quality by a mile ... do you think we can do something like this here? do we need to or is this better by default
+In Vertex AI RAG Engine, you can absolutely use a summary layer (often called "Contextual Retrieval" or "Parent-Document Retrieval") to improve search quality. 
+Claude Developer Platform
+Claude Developer Platform
+ +1
+Summary Layer: Do you still need it?
+While the RAG Engine is "better" by default because of its integration with the Document AI Layout Parser—which preserves table structures and semantic headers—summary layers are still a pro-level optimization for two reasons: 
+Google Cloud
+Google Cloud
+ +2
+Semantic Purity: Embeddings of summaries are often "cleaner" than raw text chunks, especially for complex files.
+Table Retrieval: It’s much easier to find a table if you search for a summary describing it (e.g., "Q4 Sales Revenue by Region") rather than the raw numerical data inside it. 
+Facebook
+Facebook
+How to Implement This in RAG Engine
+Since you're managing your own GCS pipeline, you can use a Multi-Vector approach. Instead of uploading two separate documents, you can attach your summary as Metadata. 
+Google Codelabs
+Google Codelabs
+Method A: The Summary-as-Metadata Approach (Best for Filtering)
+Include the summary inside your .metadata.json file. This allows you to retrieve the actual document while filtering or ranking based on the summary. 
+Google Cloud Documentation
+Google Cloud Documentation
+json
+{
+  "struct_value": {
+    "summary": "This document outlines the 2024 hiring plan for Engineering.",
+    "department": "HR",
+    "priority": "high"
+  }
+}
+Use code with caution.
+
+Method B: The Multi-Corpus Approach (Cross-Store Search)
+You can create a "Summary Corpus" and a "Deep-Dive Corpus." When querying, you search across both to get the best of both worlds. 
+Google Cloud
+Google Cloud
+ +1
+python
+from vertexai import rag
+
+# Querying multiple corpora (stores) at once
+response = rag.retrieval_query(
+    rag_resources=[
+        rag.RagResource(rag_corpus="projects/.../ragCorpora/summary_corpus_id"),
+        rag.RagResource(rag_corpus="projects/.../ragCorpora/full_text_corpus_id")
+    ],
+    text="What are the hiring targets for 2024?",
+    rag_retrieval_config=rag.RagRetrievalConfig(top_k=5)
+)
+Use code with caution.
+
+Is it better by default?
+The Search API is a "fully-assembled car" that handles summarization behind the scenes. The RAG Engine is the "customizable chassis"—it won't automatically generate these summary layers for you during ingestion, so your existing strategy of pre-generating summaries remains a high-value competitive advantage for your retrieval quality. 
+Google Cloud
+Google Cloud
+ +1
+A script is available to bulk-generate summaries using Gemini 2.0 Flash before uploading them to the RAG Engine corpus. Hybrid search, which combines summaries with raw vector search, and the Ranking API for ranking results are also available.
+
+
+
+
+
+undefined
+undefined
+undefined
+8 sites
+Search from Vertex AI | Google quality search/RAG for enterprise
+Today, there is a lot of excitement about RAG, an architecture that combines LLMs with a data retrieval system, or in other words,
+
+Google Cloud
+
+1) Chunk Indexing ↳ This is the standard approach. Split documents ...
+Nov 11, 2025 — When we have a question, the resulting query vector will be much more similar to the questions about the document than the documen...
+
+Facebook
+
+Vertex AI RAG Engine: Build & deploy RAG implementations ...
+Jan 10, 2025 — Seamless integration: Vertex AI provides built-in integration with Vertex AI Search, which lets you select Vertex AI Search as the...
+
+Google Cloud
+
+Show all
+wow ... plz give me that script ... also tell me about the ranking api ..
+To use a "summary layer" strategy at a 10M document scale, Gemini 2.0 Flash can pre-process files in your GCS bucket. After ingestion, the Vertex AI Ranking API ensures the most relevant summaries (or raw chunks) are used.
+Script: Generate Summaries for RAG Ingestion
+This script reads PDFs from GCS, uses Gemini to create a concise summary, and saves it as a .metadata.json sidecar file. This creates a "summary layer" without managing two separate document sets.
+python
+import json
+from google.cloud import storage
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part
+
+# Initialize Vertex AI
+PROJECT_ID = "your-project-id"
+vertexai.init(project=PROJECT_ID, location="us-central1")
+model = GenerativeModel("gemini-2.0-flash")
+
+def process_and_summarize(bucket_name, file_path):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(file_path)
+    
+    # 1. Generate Summary using Gemini 2.0 Flash
+    # Gemini can read GCS URIs directly
+    pdf_part = Part.from_uri(uri=f"gs://{bucket_name}/{file_path}", mime_type="application/pdf")
+    prompt = "Provide a 3-sentence technical summary of this document for RAG indexing."
+    
+    response = model.generate_content([pdf_part, prompt])
+    summary_text = response.text
+    
+    # 2. Save as Metadata Sidecar
+    metadata = {
+        "struct_value": {
+            "summary_layer": summary_text,
+            "original_file": file_path,
+            "content_type": "technical_report"
+        }
+    }
+    
+    metadata_blob = bucket.blob(f"{file_path}.metadata.json")
+    metadata_blob.upload_from_string(json.dumps(metadata), content_type="application/json")
+    print(f"Generated summary layer for {file_path}")
+
+# Example usage:
+# process_and_summarize("your-rag-bucket", "reports/q3_finance.pdf")
+Use code with caution.
+
+The Vertex AI Ranking API 
+The Ranking API is a cross-encoder that assesses the query and document to provide a relevance score. 
+Google Cloud Documentation
+Google Cloud Documentation
+Why use it?
+Precision: It re-orders the top candidates from your vector search, ensuring the actual answer is in the top results.
+Efficiency: It reduces hallucinations by filtering out irrelevant context.
+Stateless: It can rerank any JSON records. 
+Google Cloud Documentation
+Google Cloud Documentation
+ +2
+How to enable it in your RAG Query
+You can integrate it into your RagRetrievalConfig using the semantic-ranker-default@latest model. 
+Google Cloud Documentation
+Google Cloud Documentation
+python
+from vertexai import rag
+
+rag_retrieval_config = rag.RagRetrievalConfig(
+    top_k=10, 
+    ranking=rag.Ranking(
+        ranker="semantic-ranker-default@latest" # Automatically enables the Ranking API
+    )
+)
+
+response = rag.retrieval_query(
+    rag_resources=[rag.RagResource(rag_corpus=CORPUS_NAME)],
+    text="Query about your tables...",
+    rag_retrieval_config=rag_retrieval_config
+)
